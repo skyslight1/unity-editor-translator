@@ -80,6 +80,10 @@ namespace EditorTranslator
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("行为", EditorStyles.boldLabel);
             st.autoTranslate = EditorGUILayout.Toggle(new GUIContent("自动翻译新文本", "新出现的界面文本自动入队翻译（关闭后只翻译手动触发的内容）"), st.autoTranslate);
+            bool prevAssetNames = st.translateAssetNames;
+            st.translateAssetNames = EditorGUILayout.Toggle(new GUIContent("翻译资产名", "默认关闭：Hierarchy / Project / Scene 等窗口里的场景物体与资产名保持原文。\n开启后这些名字也会被 AI 翻译——它们是数据名称，译文可能不符合预期（如角色名被意译），可在 Manager 里逐条修正或忽略。"), st.translateAssetNames);
+            if (st.translateAssetNames != prevAssetNames)
+                TranslationCache.ClearSkips(); // let previously skipped asset names flow again
             st.maxBatch = EditorGUILayout.IntSlider("每批条数", st.maxBatch, 1, 60);
             st.maxInflight = EditorGUILayout.IntSlider("并发批数", st.maxInflight, 1, 6);
             st.maxTextLength = EditorGUILayout.IntSlider("最长字符数", st.maxTextLength, 40, 400);

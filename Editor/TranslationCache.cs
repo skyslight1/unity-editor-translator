@@ -201,6 +201,13 @@ namespace EditorTranslator
             }
         }
 
+        /// Drops the runtime negative cache (classifier rejects). Needed when a settings change
+        /// (e.g. "translate asset names" toggled on) makes previously-skipped strings translatable.
+        public static void ClearSkips()
+        {
+            lock (_lock) _skip.Clear();
+        }
+
         /// Failed (given up) entries become Pending again. Returns how many were reset.
         public static int ResetFailed()
         {

@@ -54,7 +54,7 @@ Unity 编辑器界面**实时双语翻译**插件：自动 AI 翻译编辑器窗
 
 ❌ **不覆盖**（受 Unity 机制限制）：顶部菜单栏与右键原生菜单、`EditorUtility.DisplayDialog` 等系统对话框、Tooltip 悬浮提示、使用 UI Toolkit（UITK）编写的新式窗口、输入框（TextField）里的内容 —— 输入框不翻译是刻意设计，保证资产名、路径等数据安全。
 
-默认窗口黑名单（可编辑）：Hierarchy、Project、Console、Scene、Game、Animator、Timeline —— 这些窗口显示的是你的资产与对象名，必须保持原文。也可在 Settings 里用正则永久忽略特定文本，或在 Manager 里对单条译文点"忽略"。
+默认窗口黑名单（可编辑）：Hierarchy、Project、Console、Scene、Game、Animator、Timeline —— 这些窗口显示的是你的资产与对象名，必须保持原文。Settings 里有 **"翻译资产名"** 开关：默认关闭；开启后黑名单不再拦截，场景物体与资产名也会被 AI 翻译（它们是数据名称，译文可能不符合预期，可在 Manager 里逐条修正或忽略）。也可在 Settings 里用正则永久忽略特定文本，或在 Manager 里对单条译文点"忽略"。
 
 ## 技术原理
 

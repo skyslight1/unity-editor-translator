@@ -75,6 +75,9 @@ namespace EditorTranslator
 
         public static bool AllowCurrentWindow(TranslatorSettings st)
         {
+            // User opt-in: when enabled, data-centric windows are no longer excluded, so
+            // scene objects / asset names get translated too (at the user's own risk).
+            if (st.translateAssetNames) return true;
             try
             {
                 Init();

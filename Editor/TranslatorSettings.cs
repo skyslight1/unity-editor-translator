@@ -20,6 +20,7 @@ namespace EditorTranslator
         public BilingualMode displayMode = BilingualMode.Inline;
         public bool overflowGuard = true;
         public bool autoTranslate = true;
+        public bool translateAssetNames = false;
         public int maxBatch = 20;
         public int maxInflight = 1;
         public int maxTextLength = 120;
