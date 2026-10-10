@@ -28,6 +28,7 @@ namespace EditorTranslator
         public int requestTimeout = 30;
         public List<string> windowBlacklist = DefaultBlacklist();
         public List<string> ignoreRegex = new List<string>();
+        public List<string> glossary = new List<string>(); // "English=中文" per line
 
         public static List<string> DefaultBlacklist() => new List<string>
         {
@@ -46,6 +47,32 @@ namespace EditorTranslator
 
         static TranslatorSettings _instance;
         public static TranslatorSettings Instance => _instance ?? (_instance = new TranslatorSettings());
+
+        // --- glossary fast lookup (rebuilt on every Save) ---
+        internal Dictionary<string, string> GlossaryFast;
+        internal int GlossaryVersion;
+
+        public Dictionary<string, string> GetGlossaryFast()
+        {
+            if (GlossaryFast == null || GlossaryFastStamp != GlossaryVersion)
+            {
+                var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                if (glossary != null)
+                    foreach (var line in glossary)
+                    {
+                        var i = line.IndexOf('=');
+                        if (i <= 0 || i == line.Length - 1) continue;
+                        var en = line.Substring(0, i).Trim();
+                        var zh = line.Substring(i + 1).Trim();
+                        if (en.Length > 0 && zh.Length > 0) d[en] = zh;
+                    }
+                GlossaryFast = d;
+                GlossaryFastStamp = GlossaryVersion;
+            }
+            return GlossaryFast;
+        }
+
+        internal int GlossaryFastStamp;
 
         public static void Load()
         {
@@ -67,6 +94,7 @@ namespace EditorTranslator
             try
             {
                 File.WriteAllText(SettingsPath, JsonUtility.ToJson(Instance, true));
+                Instance.GlossaryVersion++; // invalidate fast glossary
             }
             catch (Exception e)
             {

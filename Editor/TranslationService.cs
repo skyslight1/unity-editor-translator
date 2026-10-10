@@ -97,21 +97,32 @@ namespace EditorTranslator
             return result;
         }
 
-        static string BuildPrompt(TranslatorSettings st) =>
-            "You are a professional localizer for the Unity Editor user interface. " +
-            "Every string you receive is UI copy drawn inside Unity Editor windows (Inspector, plugin windows, dialogs, settings panels): " +
-            "labels, buttons, headings, tooltips, field names.\n" +
-            "Translate each string into " + st.targetLang + " following these rules:\n" +
-            "1. TERMINOLOGY: always prefer the official Unity Simplified Chinese language pack terms when they exist. " +
-            "Key terms: GameObject=游戏对象, Component=组件, Material=材质, Shader=着色器, Texture=纹理, Mesh=网格, Transform=变换, " +
-            "Camera=摄像机, Light=灯光, Animation=动画, Animator=动画控制器, Collider=碰撞体, Rigidbody=刚体, Scene=场景, Project=项目, " +
-            "Prefab=预制件, Inspector=检查器, Script=脚本, Sprite=精灵, Render=渲染, Physics=物理, Import=导入, Export=导出, " +
-            "Save=保存, Load=加载, Apply=应用, Reset=重置, Create=创建, Delete=删除, Rename=重命名, Duplicate=复制, Settings=设置, Advanced=高级.\n" +
-            "2. STAY LITERAL: a single common word gets its single most common UI meaning. Do NOT invent context " +
-            "(e.g. \"All\"=全部, never a domain-specific reading). Do not add, omit or explain anything.\n" +
-            "3. Keep product names, file names and proper nouns unchanged. Keep placeholders like {0}, {name}, %s, %d intact.\n" +
-            "4. Keep it concise like UI labels. If a string is an identifier or code-like, return it unchanged.\n" +
-            "Reply with ONLY a JSON object {\"translations\": [...]} with exactly the same number of items, in the same order.";
+        static string BuildPrompt(TranslatorSettings st)
+        {
+            var sb = new StringBuilder();
+            sb.Append("You are a professional localizer for the Unity Editor user interface. ");
+            sb.Append("Every string you receive is UI copy drawn inside Unity Editor windows (Inspector, plugin windows, dialogs, settings panels): ");
+            sb.Append("labels, buttons, headings, tooltips, field names.\n");
+            sb.Append("Translate each string into ").Append(st.targetLang).Append(" following these rules:\n");
+            sb.Append("1. TERMINOLOGY: always prefer the official Unity Simplified Chinese language pack terms when they exist. ");
+            sb.Append("Key terms: GameObject=游戏对象, Component=组件, Material=材质, Shader=着色器, Texture=纹理, Mesh=网格, Transform=变换, ");
+            sb.Append("Camera=摄像机, Light=灯光, Animation=动画, Animator=动画控制器, Collider=碰撞体, Rigidbody=刚体, Scene=场景, Project=项目, ");
+            sb.Append("Prefab=预制件, Inspector=检查器, Script=脚本, Sprite=精灵, Render=渲染, Physics=物理, Import=导入, Export=导出, ");
+            sb.Append("Save=保存, Load=加载, Apply=应用, Reset=重置, Create=创建, Delete=删除, Rename=重命名, Duplicate=复制, Settings=设置, Advanced=高级.\n");
+            var g = st.GetGlossaryFast();
+            if (g != null && g.Count > 0)
+            {
+                sb.Append("2. USER GLOSSARY (mandatory — when a string matches one of these exactly, use exactly this translation):\n");
+                foreach (var kv in g)
+                    sb.Append("  \"").Append(kv.Key).Append("\" => \"").Append(kv.Value).Append("\"\n");
+            }
+            sb.Append("3. STAY LITERAL: a single common word gets its single most common UI meaning. Do NOT invent context ");
+            sb.Append("(e.g. \"All\"=全部, never a domain-specific reading). Do not add, omit or explain anything.\n");
+            sb.Append("4. Keep product names, file names and proper nouns unchanged. Keep placeholders like {0}, {name}, %s, %d intact.\n");
+            sb.Append("5. Keep it concise like UI labels. If a string is an identifier or code-like, return it unchanged.\n");
+            sb.Append("Reply with ONLY a JSON object {\"translations\": [...]} with exactly the same number of items, in the same order.");
+            return sb.ToString();
+        }
 
         // ---------- Google free endpoint ----------
 

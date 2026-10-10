@@ -98,6 +98,15 @@ namespace EditorTranslator
         {
             lock (_lock)
             {
+                // User glossary: exact-match override, wins over cache and queue.
+                var g = TranslatorSettings.Instance.GetGlossaryFast();
+                if (g != null && g.Count > 0)
+                {
+                    if (g.TryGetValue(en, out var forced)) return forced;
+                    var trimmed = en.Trim();
+                    if (trimmed.Length > 0 && g.TryGetValue(trimmed, out forced)) return forced;
+                }
+
                 if (_map.TryGetValue(en, out var e))
                 {
                     if (e.state == EntryState.Done && !string.IsNullOrEmpty(e.zh)) return e.zh;

@@ -102,6 +102,11 @@ namespace EditorTranslator
             DrawListArea(v => st.windowBlacklist = v, st.windowBlacklist);
 
             EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField("自定义术语表（每行 English=中文；整句精确匹配时直接采用，并注入 AI 提示词）", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("例：Roughness=表面粗糙度。术语表优先级最高，会覆盖 AI 译文；修改后对已翻好的词条也立即生效。", MessageType.None);
+            DrawGlossaryArea(st);
+
+            EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("忽略正则（每行一个，命中的文本永不翻译）", EditorStyles.boldLabel);
             DrawListArea(v => { st.ignoreRegex = v; TextClassifier.ClearCache(); }, st.ignoreRegex);
 
@@ -179,6 +184,17 @@ namespace EditorTranslator
             if (nt != text)
             {
                 setter(nt.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList());
+                TranslatorSettings.Save();
+            }
+        }
+
+        static void DrawGlossaryArea(TranslatorSettings st)
+        {
+            var text = string.Join("\n", (st.glossary ?? new List<string>()).ToArray());
+            var nt = EditorGUILayout.TextArea(text, GUILayout.MinHeight(56));
+            if (nt != text)
+            {
+                st.glossary = nt.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
                 TranslatorSettings.Save();
             }
         }

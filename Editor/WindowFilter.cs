@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace EditorTranslator
 {
@@ -112,6 +113,12 @@ namespace EditorTranslator
             return false; // unknown context — fail closed
         }
 
+        // Frame-scoped memo: within one editor frame the current view never changes, so the
+        // (reflection-heavy) verdict is computed once per view per frame instead of per control.
+        static UnityEngine.Object _memoView;
+        static bool _memoAllow;
+        static int _memoFrame;
+
         public static bool AllowCurrentWindow(TranslatorSettings st)
         {
             // User opt-in: when enabled, data-centric windows are no longer excluded, so
@@ -120,39 +127,48 @@ namespace EditorTranslator
             try
             {
                 Init();
-                if (_current != null)
+                if (_current == null) return false;
+                var view = _current.GetValue(null);
+                if (view == null) return JudgeByCallStack(st);
+
+                int frame = Time.frameCount;
+                if (frame == _memoFrame && ReferenceEquals(view, _memoView)) return _memoAllow;
+
+                bool allow;
+                var hw = GetHostWindowProp(view.GetType());
+                if (hw == null)
                 {
-                    var view = _current.GetValue(null);
-                    if (view != null)
-                    {
-                        var hw = GetHostWindowProp(view.GetType());
-                        if (hw != null)
-                        {
-                            var win = hw.GetValue(view);
-                            // Known window → classify by its concrete type.
-                            if (win != null)
-                            {
-                                string typeName = win.GetType().FullName;
-                                var bl = st.windowBlacklist;
-                                if (bl == null) return true;
-                                for (int i = 0; i < bl.Count; i++)
-                                {
-                                    var pat = bl[i];
-                                    if (!string.IsNullOrWhiteSpace(pat) && typeName.StartsWith(pat.Trim(), StringComparison.OrdinalIgnoreCase))
-                                        return false;
-                                }
-                                return true;
-                            }
-                        }
-                    }
+                    allow = JudgeByCallStack(st);
                 }
-                // No window context (ShaderGUI panes, nested views): judge by the call stack.
-                return JudgeByCallStack(st);
+                else
+                {
+                    var win = hw.GetValue(view);
+                    allow = win != null
+                        ? MatchBlacklist(win.GetType().FullName, st)
+                        : JudgeByCallStack(st); // nested pane without a host window
+                }
+                _memoView = view as UnityEngine.Object;
+                _memoAllow = allow;
+                _memoFrame = frame;
+                return allow;
             }
             catch
             {
                 return false;
             }
+        }
+
+        static bool MatchBlacklist(string typeName, TranslatorSettings st)
+        {
+            var bl = st.windowBlacklist;
+            if (bl == null) return true;
+            for (int i = 0; i < bl.Count; i++)
+            {
+                var pat = bl[i];
+                if (!string.IsNullOrWhiteSpace(pat) && typeName.StartsWith(pat.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+            return true;
         }
     }
 }
