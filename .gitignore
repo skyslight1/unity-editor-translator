@@ -1,0 +1,25 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# IDE / OS files
+.vs/
+.idea/
+*.csproj
+*.sln
+*.user
+*.userprefs
+.DS_Store
+Thumbs.db
+
+# Local packaging artifacts
+*.zip
+
+# Local translation cache / project settings with local preferences
+EditorTranslator/Library/
+EditorTranslator/ProjectSettings/
