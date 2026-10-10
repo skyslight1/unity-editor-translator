@@ -1,5 +1,7 @@
 # Editor Translator (AI Bilingual)
 
+![双语 Inspector 演示](docs/inspector-bilingual.png)
+
 Unity 编辑器界面**实时双语翻译**插件：自动 AI 翻译编辑器窗口里出现的所有文本（包括以后新装的第三方插件），以 **中文 (English)** 双语形式显示而不是替换原文，菜单一键开关、立即生效。
 
 ## 安装

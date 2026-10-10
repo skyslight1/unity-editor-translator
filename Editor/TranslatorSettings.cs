@@ -24,7 +24,7 @@ namespace EditorTranslator
         public bool enableUIToolkit = true;
         public int maxBatch = 20;
         public int maxInflight = 1;
-        public int maxTextLength = 120;
+        public int maxTextLength = 200;
         public int requestTimeout = 30;
         public List<string> windowBlacklist = DefaultBlacklist();
         public List<string> ignoreRegex = new List<string>();

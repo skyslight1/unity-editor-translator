@@ -79,7 +79,8 @@ namespace EditorTranslator
         // the blacklist) or an inspector-ish context (allowed).
         static readonly string[] SafeStackMarkers =
         {
-            "InspectorWindow", "MaterialEditor", "PropertyEditor", "ShaderGUI", "EditorWindow" ,
+            "InspectorWindow", "MaterialEditor", "PropertyEditor", "ShaderGUI", "EditorWindow",
+            "TooltipView", // floating IMGUI tooltip — no hostWindow, draws via GUI.Box
         };
 
         static bool JudgeByCallStack(TranslatorSettings st)

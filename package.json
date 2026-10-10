@@ -1,7 +1,7 @@
 {
   "name": "com.kuro.editor-translator",
   "displayName": "Editor Translator (AI Bilingual)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "unity": "2021.3",
   "description": "AI-translates Unity Editor IMGUI text on the fly (including third-party plugin windows), shows bilingual text (Chinese + English), toggleable from the Tools menu. Texts are intercepted at GUIStyle.Draw level, translated in background batches, and cached locally.",
   "keywords": ["translate", "localization", "editor", "bilingual"],
