@@ -30,7 +30,7 @@ namespace EditorTranslator
 
             if (!TranslatorCore.IsRunning) return;
 
-            if (TranslatorCore.DebugDiagnostics && _debugCount < 40)
+            if (TranslatorCore.DebugDiagnostics && _debugCount < 200)
             {
                 _debugCount++;
                 Debug.Log("[ET-debug#" + _debugCount + "] win=" + WindowFilter.DescribeCurrentWindow() + " | text=" + content.text);

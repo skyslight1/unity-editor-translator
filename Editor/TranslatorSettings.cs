@@ -37,6 +37,7 @@ namespace EditorTranslator
             "UnityEditor.SceneView",
             "UnityEditor.Graphs.AnimatorControllerTool",
             "UnityEditor.Timeline.TimelineWindow",
+            "UnityEditor.ObjectPicker",
         };
 
         const string SettingsPath = "ProjectSettings/EditorTranslator.json";

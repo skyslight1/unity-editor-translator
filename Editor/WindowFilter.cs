@@ -73,6 +73,44 @@ namespace EditorTranslator
             catch (System.Exception e) { return "error:" + e.Message; }
         }
 
+        // Some draws (ShaderGUI / MaterialEditor panels, nested panes) run with GUIView.current
+        // == null, so the window-type path above cannot classify them. Fall back to sniffing the
+        // call stack: the first decisive frame tells us whether this is a data window (blocked by
+        // the blacklist) or an inspector-ish context (allowed).
+        static readonly string[] SafeStackMarkers =
+        {
+            "InspectorWindow", "MaterialEditor", "PropertyEditor", "ShaderGUI", "EditorWindow" ,
+        };
+
+        static bool JudgeByCallStack(TranslatorSettings st)
+        {
+            try
+            {
+                var stack = new System.Diagnostics.StackTrace(3, false);
+                var bl = st.windowBlacklist;
+                for (int i = 0; i < stack.FrameCount && i < 48; i++)
+                {
+                    var type = stack.GetFrame(i).GetMethod()?.DeclaringType;
+                    var name = type?.FullName;
+                    if (string.IsNullOrEmpty(name)) continue;
+                    if (bl != null)
+                    {
+                        for (int j = 0; j < bl.Count; j++)
+                        {
+                            var p = bl[j];
+                            if (!string.IsNullOrWhiteSpace(p) && name.StartsWith(p.Trim(), StringComparison.OrdinalIgnoreCase))
+                                return false;
+                        }
+                    }
+                    for (int j = 0; j < SafeStackMarkers.Length; j++)
+                        if (name.IndexOf(SafeStackMarkers[j], StringComparison.Ordinal) >= 0)
+                            return true;
+                }
+            }
+            catch { }
+            return false; // unknown context — fail closed
+        }
+
         public static bool AllowCurrentWindow(TranslatorSettings st)
         {
             // User opt-in: when enabled, data-centric windows are no longer excluded, so
@@ -81,27 +119,38 @@ namespace EditorTranslator
             try
             {
                 Init();
-                if (_current == null) return true;
-                var view = _current.GetValue(null);
-                if (view == null) return true;
-                var hw = GetHostWindowProp(view.GetType());
-                if (hw == null) return true;
-                var win = hw.GetValue(view);
-                if (win == null) return true;
-                string typeName = win.GetType().FullName;
-                var bl = st.windowBlacklist;
-                if (bl == null) return true;
-                for (int i = 0; i < bl.Count; i++)
+                if (_current != null)
                 {
-                    var pat = bl[i];
-                    if (string.IsNullOrWhiteSpace(pat)) continue;
-                    if (typeName.StartsWith(pat.Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+                    var view = _current.GetValue(null);
+                    if (view != null)
+                    {
+                        var hw = GetHostWindowProp(view.GetType());
+                        if (hw != null)
+                        {
+                            var win = hw.GetValue(view);
+                            // Known window → classify by its concrete type.
+                            if (win != null)
+                            {
+                                string typeName = win.GetType().FullName;
+                                var bl = st.windowBlacklist;
+                                if (bl == null) return true;
+                                for (int i = 0; i < bl.Count; i++)
+                                {
+                                    var pat = bl[i];
+                                    if (!string.IsNullOrWhiteSpace(pat) && typeName.StartsWith(pat.Trim(), StringComparison.OrdinalIgnoreCase))
+                                        return false;
+                                }
+                                return true;
+                            }
+                        }
+                    }
                 }
-                return true;
+                // No window context (ShaderGUI panes, nested views): judge by the call stack.
+                return JudgeByCallStack(st);
             }
             catch
             {
-                return true;
+                return false;
             }
         }
     }
