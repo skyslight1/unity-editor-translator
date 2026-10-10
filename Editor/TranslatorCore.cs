@@ -19,6 +19,9 @@ namespace EditorTranslator
 
         public static bool IsRunning => _patched;
 
+        // Temporary switch for drawing-path diagnostics (set via reflection during testing).
+        internal static bool DebugDiagnostics;
+
         static TranslatorCore()
         {
             TranslatorSettings.Load();
@@ -46,9 +49,13 @@ namespace EditorTranslator
             }
 
             int n = 0;
+            // "Draw" covers label/button/box text; "DrawPrefixLabel" is the path EditorGUI.PrefixLabel
+            // uses for inspector field labels. DrawCursor / DrawWithTextSelection (text fields) are
+            // deliberately left alone so user-typed content and asset names are never rewritten.
             var targets = typeof(GUIStyle)
                 .GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-                .Where(m => string.Equals(m.Name, "Draw", StringComparison.Ordinal))
+                .Where(m => string.Equals(m.Name, "Draw", StringComparison.Ordinal) ||
+                            string.Equals(m.Name, "DrawPrefixLabel", StringComparison.Ordinal))
                 .Where(m => !m.IsAbstract && !m.IsGenericMethod && m.DeclaringType == typeof(GUIStyle))
                 .Where(m => m.GetParameters().Any(p => p.ParameterType == typeof(GUIContent) && p.Name == "content"));
 

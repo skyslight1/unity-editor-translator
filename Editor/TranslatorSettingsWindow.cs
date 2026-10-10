@@ -24,6 +24,7 @@ namespace EditorTranslator
         void OnGUI()
         {
             var st = TranslatorSettings.Instance;
+            EditorGUI.BeginChangeCheck();
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
             EditorGUILayout.HelpBox(
@@ -43,7 +44,7 @@ namespace EditorTranslator
 
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("翻译服务", EditorStyles.boldLabel);
-            var newProvider = (TranslatorProvider)EditorGUILayout.EnumPopup(new GUIContent("后端", "Google 免费接口零配置；OpenAI 兼容接口质量更高"), st.provider);
+            var newProvider = (TranslatorProvider)EditorGUILayout.EnumPopup(new GUIContent("后端", "Google 免费接口 / MyMemory 免费接口均无需密钥；OpenAI 兼容接口质量最高"), st.provider);
             if (newProvider != st.provider) { st.provider = newProvider; TextClassifier.ClearCache(); }
 
             if (st.provider == TranslatorProvider.OpenAICompatible)
@@ -53,12 +54,19 @@ namespace EditorTranslator
                 DrawApiKey();
                 EditorGUILayout.HelpBox("任意 OpenAI 兼容接口（/v1/chat/completions），支持各种中转站。", MessageType.None);
             }
+            else if (st.provider == TranslatorProvider.MyMemory)
+            {
+                st.googleTarget = EditorGUILayout.TextField("目标语言代码", st.googleTarget);
+                EditorGUILayout.HelpBox(
+                    "MyMemory 免费接口（api.mymemory.translated.net，匿名可用，无需密钥）。\n" +
+                    "匿名配额约 5000 字符/天，机器翻译质量一般；想要 AI/LLM 翻译质量请切换到 OpenAI 兼容后端。", MessageType.None);
+            }
             else
             {
                 st.googleTarget = EditorGUILayout.TextField("目标语言代码", st.googleTarget);
                 EditorGUILayout.HelpBox(
                     "Google 免费接口（translate.googleapis.com，无需密钥），需要网络能访问 Google。\n" +
-                    "机翻质量有限；想要 AI/LLM 翻译质量请切换到 OpenAI 兼容后端。", MessageType.None);
+                    "共享代理 IP 下经常被限流 (429)，遇到限流请换 MyMemory 或 OpenAI 兼容后端。", MessageType.None);
             }
             st.targetLang = EditorGUILayout.TextField(new GUIContent("目标语言（提示词）", "仅 OpenAI 后端使用"), st.targetLang);
 

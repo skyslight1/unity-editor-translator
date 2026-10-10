@@ -52,7 +52,7 @@ namespace EditorTranslator
 
             if (!TranslatorCore.IsRunning) return;
             if (!TranslatorSettings.Instance.autoTranslate) return;
-            if (EditorApplication.timeSinceStartup - _lastCheck < 0.5) return;
+            if (EditorApplication.timeSinceStartup - _lastCheck < 2.0) return;
             _lastCheck = EditorApplication.timeSinceStartup;
 
             SendBatch();

@@ -11,6 +11,7 @@ namespace EditorTranslator
     internal static class IMGUIInterceptor
     {
         static readonly Stack<(GUIContent content, string original)> _restore = new Stack<(GUIContent, string)>(4);
+        static int _debugCount;
 
         // The 'content' parameter name must match the original method's; Harmony injects by name.
         public static void Prefix(GUIContent content)
@@ -28,6 +29,12 @@ namespace EditorTranslator
             }
 
             if (!TranslatorCore.IsRunning) return;
+
+            if (TranslatorCore.DebugDiagnostics && _debugCount < 40)
+            {
+                _debugCount++;
+                Debug.Log("[ET-debug#" + _debugCount + "] win=" + WindowFilter.DescribeCurrentWindow() + " | text=" + content.text);
+            }
 
             string orig = content.text;
             if (string.IsNullOrEmpty(orig)) return;

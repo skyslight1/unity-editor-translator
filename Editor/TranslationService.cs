@@ -18,7 +18,44 @@ namespace EditorTranslator
         {
             if (st.provider == TranslatorProvider.OpenAICompatible)
                 return TranslateOpenAI(texts, st, apiKey);
+            if (st.provider == TranslatorProvider.MyMemory)
+                return TranslateMyMemory(texts, st);
             return TranslateGoogle(texts, st);
+        }
+
+        // ---------- MyMemory (free, anonymous, lenient rate limits) ----------
+
+        static List<string> TranslateMyMemory(List<string> texts, TranslatorSettings st)
+        {
+            var results = new string[texts.Count];
+            for (int i = 0; i < texts.Count; i++)
+            {
+                if (i > 0) Thread.Sleep(300);
+                results[i] = MyMemoryOne(texts[i], st);
+            }
+            return results.ToList();
+        }
+
+        static string MyMemoryOne(string text, TranslatorSettings st)
+        {
+            // MyMemory needs an explicit source language; pick ja for kana text, en otherwise.
+            bool hasKana = false;
+            foreach (char c in text)
+                if (c >= 0x3040 && c <= 0x30FF) { hasKana = true; break; }
+            string src = hasKana ? "ja" : "en";
+            string url = "https://api.mymemory.translated.net/get?q=" + Uri.EscapeDataString(text) +
+                         "&langpair=" + src + "%7C" + Uri.EscapeDataString(st.googleTarget);
+            string resp = HttpJson(url, null, null, st.requestTimeout * 1000);
+            var parsed = MiniJson.Parse(resp) as Dictionary<string, object>;
+            var data = parsed?["responseData"] as Dictionary<string, object>;
+            var translated = data?["translatedText"] as string;
+            if (string.IsNullOrWhiteSpace(translated))
+                throw new Exception("MyMemory returned no translation: " + Trunc(resp, 200));
+            // The free tier sometimes answers with quota/error prose instead of a translation.
+            if (translated.IndexOf("MYMEMORY WARNING", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                translated.IndexOf("QUERY LENGTH LIMIT", StringComparison.OrdinalIgnoreCase) >= 0)
+                throw new Exception("MyMemory quota/limit: " + Trunc(translated, 120));
+            return System.Net.WebUtility.HtmlDecode(translated);
         }
 
         // ---------- OpenAI-compatible (chat/completions) ----------
@@ -61,32 +98,32 @@ namespace EditorTranslator
         }
 
         static string BuildPrompt(TranslatorSettings st) =>
-            "You are a professional UI localizer for Unity Editor plugins. " +
-            "Translate each given UI string into " + st.targetLang + ". " +
-            "Auto-detect the source language. Keep it concise like UI labels. " +
-            "Preserve placeholders like {0}, {name}, %s, %d, and keep file formats and well-known technical terms untranslated. " +
-            "If an item is an identifier or should not be translated, return it unchanged. " +
+            "You are a professional localizer for the Unity Editor user interface. " +
+            "Every string you receive is UI copy drawn inside Unity Editor windows (Inspector, plugin windows, dialogs, settings panels): " +
+            "labels, buttons, headings, tooltips, field names.\n" +
+            "Translate each string into " + st.targetLang + " following these rules:\n" +
+            "1. TERMINOLOGY: always prefer the official Unity Simplified Chinese language pack terms when they exist. " +
+            "Key terms: GameObject=游戏对象, Component=组件, Material=材质, Shader=着色器, Texture=纹理, Mesh=网格, Transform=变换, " +
+            "Camera=摄像机, Light=灯光, Animation=动画, Animator=动画控制器, Collider=碰撞体, Rigidbody=刚体, Scene=场景, Project=项目, " +
+            "Prefab=预制件, Inspector=检查器, Script=脚本, Sprite=精灵, Render=渲染, Physics=物理, Import=导入, Export=导出, " +
+            "Save=保存, Load=加载, Apply=应用, Reset=重置, Create=创建, Delete=删除, Rename=重命名, Duplicate=复制, Settings=设置, Advanced=高级.\n" +
+            "2. STAY LITERAL: a single common word gets its single most common UI meaning. Do NOT invent context " +
+            "(e.g. \"All\"=全部, never a domain-specific reading). Do not add, omit or explain anything.\n" +
+            "3. Keep product names, file names and proper nouns unchanged. Keep placeholders like {0}, {name}, %s, %d intact.\n" +
+            "4. Keep it concise like UI labels. If a string is an identifier or code-like, return it unchanged.\n" +
             "Reply with ONLY a JSON object {\"translations\": [...]} with exactly the same number of items, in the same order.";
 
         // ---------- Google free endpoint ----------
 
         static List<string> TranslateGoogle(List<string> texts, TranslatorSettings st)
         {
+            // Strictly serial with a small delay: the free endpoint rate-limits hard (HTTP 429),
+            // especially behind shared proxy exit IPs. Slow-but-steady beats burst-then-banned.
             var results = new string[texts.Count];
-            using (var sem = new SemaphoreSlim(4))
+            for (int i = 0; i < texts.Count; i++)
             {
-                var tasks = new Task[texts.Count];
-                for (int i = 0; i < texts.Count; i++)
-                {
-                    int idx = i;
-                    tasks[i] = Task.Run(async () =>
-                    {
-                        await sem.WaitAsync();
-                        try { results[idx] = GoogleOne(texts[idx], st); }
-                        finally { sem.Release(); }
-                    });
-                }
-                Task.WaitAll(tasks);
+                if (i > 0) Thread.Sleep(400);
+                results[i] = GoogleOne(texts[i], st);
             }
             return results.ToList();
         }
@@ -147,6 +184,8 @@ namespace EditorTranslator
                         detail = sr.ReadToEnd();
                 }
                 catch { }
+                if (code == 429)
+                    throw new Exception("HTTP 429 — 翻译服务限流（免费接口对共享 IP 很常见）。可在设置中改用 OpenAI 兼容后端。");
                 throw new Exception("HTTP " + code + " — " + we.Message +
                                     (string.IsNullOrEmpty(detail) ? "" : " | " + Trunc(detail, 400)));
             }

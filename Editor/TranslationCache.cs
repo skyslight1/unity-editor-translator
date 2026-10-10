@@ -23,7 +23,7 @@ namespace EditorTranslator
     {
         const string CacheDir = "Library/EditorTranslator";
         const string CachePath = CacheDir + "/cache.json";
-        const int RetryCooldownSec = 60;
+        const int RetryCooldownSec = 120;
         const int MaxFailCount = 3;
 
         static readonly object _lock = new object();
@@ -51,10 +51,7 @@ namespace EditorTranslator
                     foreach (var it in cf.items)
                     {
                         if (string.IsNullOrEmpty(it.en)) continue;
-                        var state = (EntryState)it.state;
-                        // Anything that was in-flight when the domain reloaded becomes pending again.
-                        if (state == EntryState.Pending || state == EntryState.Failed) { /* keep as stored */ }
-                        _map[it.en] = new CacheEntry { en = it.en, zh = it.zh, state = state, ts = Now() };
+                        _map[it.en] = new CacheEntry { en = it.en, zh = it.zh, state = (EntryState)it.state, ts = Now() };
                     }
                 }
                 catch (Exception e)

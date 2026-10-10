@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace EditorTranslator
 {
-    internal enum TranslatorProvider { GoogleFree = 0, OpenAICompatible = 1 }
+    internal enum TranslatorProvider { GoogleFree = 0, MyMemory = 1, OpenAICompatible = 2 }
     internal enum BilingualMode { Inline = 0, Stacked = 1, ChineseOnly = 2 }
 
     [Serializable]
@@ -21,7 +21,7 @@ namespace EditorTranslator
         public bool overflowGuard = true;
         public bool autoTranslate = true;
         public int maxBatch = 20;
-        public int maxInflight = 2;
+        public int maxInflight = 1;
         public int maxTextLength = 120;
         public int requestTimeout = 30;
         public List<string> windowBlacklist = DefaultBlacklist();
