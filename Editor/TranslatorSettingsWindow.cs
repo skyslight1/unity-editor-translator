@@ -84,6 +84,13 @@ namespace EditorTranslator
             st.translateAssetNames = EditorGUILayout.Toggle(new GUIContent("翻译资产名", "默认关闭：Hierarchy / Project / Scene 等窗口里的场景物体与资产名保持原文。\n开启后这些名字也会被 AI 翻译——它们是数据名称，译文可能不符合预期（如角色名被意译），可在 Manager 里逐条修正或忽略。"), st.translateAssetNames);
             if (st.translateAssetNames != prevAssetNames)
                 TranslationCache.ClearSkips(); // let previously skipped asset names flow again
+            bool prevUITK = st.enableUIToolkit;
+            st.enableUIToolkit = EditorGUILayout.Toggle(new GUIContent("翻译 UI Toolkit 界面", "覆盖用 UI Toolkit 编写的面板（如 NonToon 等新式 shader GUI、UITK 窗口）。\n输入框内容不翻译；关闭总开关时自动恢复原文。\n切换后重新选中物体即可刷新面板。"), st.enableUIToolkit);
+            if (prevUITK != st.enableUIToolkit)
+            {
+                TranslatorCore.Disable(); TranslatorCore.Enable(); // full re-patch with the new UITK setting
+                TranslationDispatcher.RepaintAllViews();
+            }
             st.maxBatch = EditorGUILayout.IntSlider("每批条数", st.maxBatch, 1, 60);
             st.maxInflight = EditorGUILayout.IntSlider("并发批数", st.maxInflight, 1, 6);
             st.maxTextLength = EditorGUILayout.IntSlider("最长字符数", st.maxTextLength, 40, 400);

@@ -21,6 +21,7 @@ namespace EditorTranslator
         public bool overflowGuard = true;
         public bool autoTranslate = true;
         public bool translateAssetNames = false;
+        public bool enableUIToolkit = true;
         public int maxBatch = 20;
         public int maxInflight = 1;
         public int maxTextLength = 120;

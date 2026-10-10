@@ -13,9 +13,13 @@ namespace EditorTranslator
         const string HarmonyId = "com.kuro.editor-translator";
 
         static HarmonyBridge _bridge;
+        static HarmonyBridge _uitkBridge;
         static bool _patched;
+        static bool _uitkPatched;
+        static bool _uitkFailed;
         static MethodInfo _prefix;
         static MethodInfo _postfix;
+        static MethodInfo _uitkPrefix;
 
         public static bool IsRunning => _patched;
 
@@ -33,6 +37,7 @@ namespace EditorTranslator
 
             _prefix = typeof(IMGUIInterceptor).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
             _postfix = typeof(IMGUIInterceptor).GetMethod("Postfix", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            _uitkPrefix = typeof(UITKInterceptor).GetMethod("Prefix", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
             if (TranslatorSettings.Enabled) Enable();
         }
@@ -71,10 +76,48 @@ namespace EditorTranslator
 
             _patched = true;
             Debug.Log("[EditorTranslator] 已启用 — 拦截了 " + n + " 个 GUIStyle.Draw 重载。未见过的新文本会自动排队翻译。");
+
+            EnableUITK();
+        }
+
+        static void EnableUITK()
+        {
+            if (_uitkPatched || _uitkFailed) return;
+            if (!TranslatorSettings.Instance.enableUIToolkit) return;
+            if (_uitkBridge == null) _uitkBridge = HarmonyBridge.TryCreate(HarmonyId + ".uitk");
+            if (_uitkBridge == null)
+            {
+                _uitkFailed = true;
+                Debug.LogWarning("[EditorTranslator] 0Harmony 不可用，UI Toolkit 界面翻译未启用。");
+                return;
+            }
+            var setter = typeof(UnityEngine.UIElements.TextElement).GetProperty("text").GetSetMethod();
+            if (setter == null || _uitkPrefix == null)
+            {
+                _uitkFailed = true;
+                Debug.LogWarning("[EditorTranslator] 未找到 TextElement.set_text，UI Toolkit 界面翻译未启用。");
+                return;
+            }
+            if (_uitkBridge.Patch(setter, _uitkPrefix, null))
+            {
+                _uitkPatched = true;
+                Debug.Log("[EditorTranslator] UI Toolkit 界面拦截已启用（TextElement.set_text）。");
+            }
+            else
+            {
+                _uitkFailed = true;
+            }
         }
 
         public static void Disable()
         {
+            if (_uitkPatched)
+            {
+                _uitkBridge?.UnpatchAll();
+                _uitkPatched = false;
+                UITKInterceptor.RestoreAll(); // undo data-level bilingual swaps
+                Debug.Log("[EditorTranslator] UI Toolkit 拦截已关闭，已恢复原文。");
+            }
             if (!_patched) return;
             _bridge?.UnpatchAll();
             _patched = false;

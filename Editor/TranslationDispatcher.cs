@@ -48,6 +48,7 @@ namespace EditorTranslator
                 _needsRepaint = false;
                 _lastRepaint = EditorApplication.timeSinceStartup;
                 RepaintViews();
+                UITKInterceptor.RefreshTracked(); // UITK is retained-mode: push finished translations
             }
 
             if (!TranslatorCore.IsRunning) return;

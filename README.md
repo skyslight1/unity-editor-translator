@@ -50,17 +50,17 @@ Unity 编辑器界面**实时双语翻译**插件：自动 AI 翻译编辑器窗
 
 ## 覆盖范围
 
-✅ **覆盖**：Inspector、所有 EditorWindow（第三方插件的 IMGUI 窗口）、Project Settings 面板等一切 IMGUI 绘制的标签、按钮、标题。
+✅ **覆盖**：Inspector、所有 EditorWindow（第三方插件的 IMGUI 窗口）、Project Settings 面板等一切 IMGUI 绘制的标签、按钮、标题；以及 **UI Toolkit（UITK）界面**——通过拦截 `TextElement.set_text` 实现（新式 shader GUI 如 lilxyzw NonToon、UITK 窗口、顶部工具栏等）。UITK 拦截是数据级替换：开启时控件存双语，关闭总开关自动恢复原文；输入框内容永不触碰。
 
-❌ **不覆盖**（受 Unity 机制限制）：顶部菜单栏与右键原生菜单、`EditorUtility.DisplayDialog` 等系统对话框、Tooltip 悬浮提示、使用 UI Toolkit（UITK）编写的新式窗口、输入框（TextField）里的内容 —— 输入框不翻译是刻意设计，保证资产名、路径等数据安全。
+❌ **不覆盖**（受 Unity 机制限制）：顶部菜单栏与右键原生菜单、`EditorUtility.DisplayDialog` 等系统对话框、Tooltip 悬浮提示、输入框（TextField）里的内容 —— 输入框不翻译是刻意设计，保证资产名、路径等数据安全。
 
 默认窗口黑名单（可编辑）：Hierarchy、Project、Console、Scene、Game、Animator、Timeline —— 这些窗口显示的是你的资产与对象名，必须保持原文。Settings 里有 **"翻译资产名"** 开关：默认关闭；开启后黑名单不再拦截，场景物体与资产名也会被 AI 翻译（它们是数据名称，译文可能不符合预期，可在 Manager 里逐条修正或忽略）。也可在 Settings 里用正则永久忽略特定文本，或在 Manager 里对单条译文点"忽略"。
 
 ## 技术原理
 
-- `[InitializeOnLoad]` 时通过反射加载包内 `0Harmony.dll`，对 `GUIStyle.Draw(Rect, GUIContent, ...)` 的全部重载做 Harmony prefix/postfix（IMGUI 所有控件的最终绘制入口，官方源码已核对）。
-- 绘制前把 `GUIContent.text` 换成双语形式，绘制后立即恢复原文 —— 不污染 GUIContent 池，不影响布局，开关即时生效。
-- 文本先经启发式过滤（跳过路径、纯数字、常见缩写、camelCase 标识符等），再按窗口黑名单过滤，剩下的才进翻译队列。
+- `[InitializeOnLoad]` 时通过反射加载包内 `0Harmony.dll`，对 `GUIStyle.Draw(Rect, GUIContent, ...)` 的全部重载与 `DrawPrefixLabel` 做 Harmony prefix/postfix（IMGUI 所有控件的最终绘制入口，官方源码已核对）：绘制前把 `GUIContent.text` 换成双语形式，绘制后立即恢复原文——不污染 GUIContent 池，不影响布局，开关即时生效。
+- **UI Toolkit 界面**另有一套拦截：patch `UnityEngine.UIElements.TextElement.set_text`（所有 UITK 文本控件的必经之路），以数据级替换显示双语，原文保存在弱引用表中，关闭开关时批量恢复；翻译完成后由调度器主动推送（UITK 是保留模式，不会自动重绘）。输入框（TextField 系）通过父链识别并排除。
+- 文本先经启发式过滤（跳过路径、纯数字、常见缩写、camelCase 标识符等），再按窗口黑名单过滤，剩下的才进翻译队列；取不到窗口上下文的绘制（ShaderGUI/嵌套面板）按调用栈判定所属窗口。
 - 翻译在后台线程执行，主线程只做一次字典查找，不卡编辑器。域重载（改脚本/重启）后自动重新挂钩、缓存自动恢复。
 
 ## 隐私说明
